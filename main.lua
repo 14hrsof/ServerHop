@@ -30,10 +30,10 @@ ToggleBtn.BorderSizePixel = 0
 ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
 ToggleBtn.Size = UDim2.new(0, 120, 0, 35)
 ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Text = "◀ Hide Script"
+ToggleBtn.Text = "▶ Show Script"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.TextSize = 13
-ToggleBtn.ZIndex = 10 -- Pastikan toggle di atas
+ToggleBtn.ZIndex = 10
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 
 -- Shadow effect
@@ -124,7 +124,7 @@ PlusBtn.TextSize = 18
 Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
 
 -- ==============================
--- MAIN FRAME
+-- MAIN FRAME (AWALNYA TERSEMBUNYI)
 -- ==============================
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
@@ -134,7 +134,7 @@ MainFrame.Position = UDim2.new(0.5, -145, 0.5, -110)
 MainFrame.Size = UDim2.new(0, 290, 0, 220)
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true
+MainFrame.Visible = false  -- AWALNYA TERSEMBUNYI
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 -- Main frame glow
@@ -255,7 +255,7 @@ local currentSize = 120
 local minSize = 60
 local maxSize = 300
 local targetWidth = 0
-local mainFrameVisible = true
+local mainFrameVisible = false  -- AWALNYA TIDAK TERLIHAT
 
 local function updatePanelWidth(width)
     targetWidth = width
@@ -276,16 +276,15 @@ local function updateToggleSize(size)
 end
 
 local function toggleResizePanel()
+    if not mainFrameVisible then return end  -- HANYA BISA AKSES JIKA MAIN FRAME TERLIHAT
     panelVisible = not panelVisible
     if panelVisible then
         ResizePanel.Visible = true
         updatePanelWidth(250)
-        ToggleBtn.Text = "◀ Hide Script"
     else
         updatePanelWidth(0)
         task.wait(0.2)
         ResizePanel.Visible = false
-        ToggleBtn.Text = "▶ Show Script"
     end
 end
 
@@ -328,7 +327,7 @@ PlusBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==============================
--- TOGGLE KLIK UNTUK HIDE/SHOW MAIN FRAME
+-- TOGGLE KLIK UNTUK SHOW/HIDE MAIN FRAME
 -- ==============================
 ToggleBtn.MouseButton1Click:Connect(function()
     -- Toggle main frame visibility
@@ -340,14 +339,13 @@ ToggleBtn.MouseButton1Click:Connect(function()
         ToggleBtn.Text = "◀ Hide Script"
     else
         ToggleBtn.Text = "▶ Show Script"
-    end
-    
-    -- Sembunyikan resize panel jika main frame disembunyikan
-    if not mainFrameVisible and panelVisible then
-        panelVisible = false
-        updatePanelWidth(0)
-        task.wait(0.2)
-        ResizePanel.Visible = false
+        -- Sembunyikan resize panel jika main frame disembunyikan
+        if panelVisible then
+            panelVisible = false
+            updatePanelWidth(0)
+            task.wait(0.2)
+            ResizePanel.Visible = false
+        end
     end
 end)
 
