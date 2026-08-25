@@ -7,7 +7,7 @@ local PlaceId = game.PlaceId
 
 -- GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CiaoHUB ServerHOPGUI"
+ScreenGui.Name = "iD1LHUB ServerHOPGUI"
 ScreenGui.ResetOnSpawn = false
 
 if syn and syn.protect_gui then
@@ -155,7 +155,7 @@ Title.Size = UDim2.new(1, 0, 0, 36)
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
 Title.BorderSizePixel = 0
 Title.Font = Enum.Font.GothamBold
-Title.Text = "✦ CiaoHUB ServerHop ✦"
+Title.Text = "✦ iD1LHUB ServerHop ✦"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 15
 Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
