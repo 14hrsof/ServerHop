@@ -33,6 +33,7 @@ ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.Text = "◀ Hide Script"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.TextSize = 13
+ToggleBtn.ZIndex = 10 -- Pastikan toggle di atas
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 
 -- Shadow effect
@@ -51,6 +52,7 @@ ResizePanel.Position = UDim2.new(0, 135, 0, 10)
 ResizePanel.Size = UDim2.new(0, 0, 0, 35)
 ResizePanel.Visible = false
 ResizePanel.ClipsDescendants = true
+ResizePanel.ZIndex = 10
 Instance.new("UICorner", ResizePanel).CornerRadius = UDim.new(0, 8)
 
 -- Panel stroke
@@ -120,109 +122,6 @@ PlusBtn.Text = "+"
 PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 PlusBtn.TextSize = 18
 Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
-
--- ==============================
--- ANIMASI PANEL
--- ==============================
-local panelVisible = false
-local currentSize = 120
-local minSize = 60
-local maxSize = 300
-local targetWidth = 0
-
-local function updatePanelWidth(width)
-    targetWidth = width
-    ResizePanel.Size = UDim2.new(0, width, 0, 35)
-    Slider.Size = UDim2.new(0, width - 120, 0, 15)
-end
-
-local function updateToggleSize(size)
-    size = math.clamp(size, minSize, maxSize)
-    currentSize = size
-    ToggleBtn.Size = UDim2.new(0, size, 0, 35)
-    SizeLabel.Text = tostring(size)
-    
-    -- Update slider fill
-    local percent = (size - minSize) / (maxSize - minSize)
-    SliderFill.Size = UDim2.new(percent, 0, 1, 0)
-    SliderHandle.Position = UDim2.new(percent, -8, 0, -3)
-end
-
-local function togglePanel()
-    panelVisible = not panelVisible
-    if panelVisible then
-        ResizePanel.Visible = true
-        updatePanelWidth(250)
-        ToggleBtn.Text = "◀ Hide Script"
-        -- Update posisi toggle
-        ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
-    else
-        updatePanelWidth(0)
-        task.wait(0.2)
-        ResizePanel.Visible = false
-        ToggleBtn.Text = "▶ Show Script"
-    end
-end
-
--- ==============================
--- DRAG SLIDER
--- ==============================
-local dragging = false
-
-SliderHandle.MouseButton1Down:Connect(function()
-    dragging = true
-end)
-
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MousePosition then
-        local mousePos = input.Position.X
-        local sliderPos = Slider.AbsolutePosition.X
-        local sliderWidth = Slider.AbsoluteSize.X
-        
-        local percent = math.clamp((mousePos - sliderPos) / sliderWidth, 0, 1)
-        local newSize = math.round(minSize + (maxSize - minSize) * percent)
-        updateToggleSize(newSize)
-    end
-end)
-
--- ==============================
--- BUTTON +/- 
--- ==============================
-MinusBtn.MouseButton1Click:Connect(function()
-    updateToggleSize(currentSize - 5)
-end)
-
-PlusBtn.MouseButton1Click:Connect(function()
-    updateToggleSize(currentSize + 5)
-end)
-
--- ==============================
--- TOGGLE KLIK UNTUK HIDE/SHOW
--- ==============================
-ToggleBtn.MouseButton1Click:Connect(function()
-    if panelVisible then
-        togglePanel() -- Tutup panel dulu
-        task.wait(0.3)
-    end
-    -- Hide/show main frame
-    MainFrame.Visible = not MainFrame.Visible
-    if MainFrame.Visible then
-        ToggleBtn.Text = "◀ Hide Script"
-    else
-        ToggleBtn.Text = "▶ Show Script"
-    end
-end)
-
--- Klik kanan untuk resize panel
-ToggleBtn.MouseButton2Click:Connect(function()
-    togglePanel()
-end)
 
 -- ==============================
 -- MAIN FRAME
@@ -347,6 +246,117 @@ AutoBtn.Text = "🔄 Auto Hop: OFF"
 AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AutoBtn.TextSize = 13
 Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(0, 6)
+
+-- ==============================
+-- ANIMASI PANEL
+-- ==============================
+local panelVisible = false
+local currentSize = 120
+local minSize = 60
+local maxSize = 300
+local targetWidth = 0
+local mainFrameVisible = true
+
+local function updatePanelWidth(width)
+    targetWidth = width
+    ResizePanel.Size = UDim2.new(0, width, 0, 35)
+    Slider.Size = UDim2.new(0, width - 120, 0, 15)
+end
+
+local function updateToggleSize(size)
+    size = math.clamp(size, minSize, maxSize)
+    currentSize = size
+    ToggleBtn.Size = UDim2.new(0, size, 0, 35)
+    SizeLabel.Text = tostring(size)
+    
+    -- Update slider fill
+    local percent = (size - minSize) / (maxSize - minSize)
+    SliderFill.Size = UDim2.new(percent, 0, 1, 0)
+    SliderHandle.Position = UDim2.new(percent, -8, 0, -3)
+end
+
+local function toggleResizePanel()
+    panelVisible = not panelVisible
+    if panelVisible then
+        ResizePanel.Visible = true
+        updatePanelWidth(250)
+        ToggleBtn.Text = "◀ Hide Script"
+    else
+        updatePanelWidth(0)
+        task.wait(0.2)
+        ResizePanel.Visible = false
+        ToggleBtn.Text = "▶ Show Script"
+    end
+end
+
+-- ==============================
+-- DRAG SLIDER
+-- ==============================
+local dragging = false
+
+SliderHandle.MouseButton1Down:Connect(function()
+    dragging = true
+end)
+
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MousePosition then
+        local mousePos = input.Position.X
+        local sliderPos = Slider.AbsolutePosition.X
+        local sliderWidth = Slider.AbsoluteSize.X
+        
+        local percent = math.clamp((mousePos - sliderPos) / sliderWidth, 0, 1)
+        local newSize = math.round(minSize + (maxSize - minSize) * percent)
+        updateToggleSize(newSize)
+    end
+end)
+
+-- ==============================
+-- BUTTON +/- 
+-- ==============================
+MinusBtn.MouseButton1Click:Connect(function()
+    updateToggleSize(currentSize - 5)
+end)
+
+PlusBtn.MouseButton1Click:Connect(function()
+    updateToggleSize(currentSize + 5)
+end)
+
+-- ==============================
+-- TOGGLE KLIK UNTUK HIDE/SHOW MAIN FRAME
+-- ==============================
+ToggleBtn.MouseButton1Click:Connect(function()
+    -- Toggle main frame visibility
+    mainFrameVisible = not mainFrameVisible
+    MainFrame.Visible = mainFrameVisible
+    
+    -- Update text toggle
+    if mainFrameVisible then
+        ToggleBtn.Text = "◀ Hide Script"
+    else
+        ToggleBtn.Text = "▶ Show Script"
+    end
+    
+    -- Sembunyikan resize panel jika main frame disembunyikan
+    if not mainFrameVisible and panelVisible then
+        panelVisible = false
+        updatePanelWidth(0)
+        task.wait(0.2)
+        ResizePanel.Visible = false
+    end
+end)
+
+-- Klik kanan untuk resize panel (hanya jika main frame terlihat)
+ToggleBtn.MouseButton2Click:Connect(function()
+    if mainFrameVisible then
+        toggleResizePanel()
+    end
+end)
 
 -- ==============================
 -- LOGIC
