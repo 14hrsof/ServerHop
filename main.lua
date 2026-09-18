@@ -1,479 +1,413 @@
-local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local PlaceId = game.PlaceId
 
--- GUI
+-- LAPIS 1: COOLDOWN PERSISTEN DI ENVIRONMENT EXECUTOR TERATAS
+local globalEnv = (getgenv and getgenv()) or shared or _G
+globalEnv.ServerHop_CooldownEnd = globalEnv.ServerHop_CooldownEnd or 0
+
+-- Hapus GUI lama jika ada
+if game.CoreGui:FindFirstChild("ServerHopPanelGUI") then
+    game.CoreGui.ServerHopPanelGUI:Destroy()
+end
+
+-- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "iD1LHUB ServerHOPGUI"
+ScreenGui.Name = "ServerHopPanelGUI"
+ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
-    ScreenGui.Parent = game.CoreGui
-elseif gethui then
-    ScreenGui.Parent = gethui()
-else
-    ScreenGui.Parent = game.CoreGui
-end
-
--- ==============================
--- TOGGLE BUTTON (dengan resize slider)
--- ==============================
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Name = "ToggleButton"
-ToggleBtn.Parent = ScreenGui
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-ToggleBtn.BorderSizePixel = 0
-ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
-ToggleBtn.Size = UDim2.new(0, 120, 0, 35)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Text = "▶ Show Script"
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.TextSize = 13
-ToggleBtn.ZIndex = 10
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
-
--- Shadow effect
-local ToggleShadow = Instance.new("UIStroke", ToggleBtn)
-ToggleShadow.Color = Color3.fromRGB(100, 100, 200)
-ToggleShadow.Thickness = 1.5
-
--- ==============================
--- RESIZE PANEL (muncul di samping toggle)
--- ==============================
-local ResizePanel = Instance.new("Frame")
-ResizePanel.Parent = ScreenGui
-ResizePanel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-ResizePanel.BorderSizePixel = 0
-ResizePanel.Position = UDim2.new(0, 135, 0, 10)
-ResizePanel.Size = UDim2.new(0, 0, 0, 35)
-ResizePanel.Visible = false
-ResizePanel.ClipsDescendants = true
-ResizePanel.ZIndex = 10
-Instance.new("UICorner", ResizePanel).CornerRadius = UDim.new(0, 8)
-
--- Panel stroke
-local PanelStroke = Instance.new("UIStroke", ResizePanel)
-PanelStroke.Color = Color3.fromRGB(80, 80, 200)
-PanelStroke.Thickness = 1
-
--- Slider untuk resize
-local Slider = Instance.new("Frame")
-Slider.Parent = ResizePanel
-Slider.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-Slider.BorderSizePixel = 0
-Slider.Position = UDim2.new(0, 10, 0, 10)
-Slider.Size = UDim2.new(0, 0, 0, 15)
-Instance.new("UICorner", Slider).CornerRadius = UDim.new(0, 4)
-
--- Slider fill (progress)
-local SliderFill = Instance.new("Frame")
-SliderFill.Parent = Slider
-SliderFill.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-SliderFill.BorderSizePixel = 0
-SliderFill.Size = UDim2.new(0.5, 0, 1, 0)
-Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(0, 4)
-
--- Slider handle (bulat)
-local SliderHandle = Instance.new("TextButton")
-SliderHandle.Parent = Slider
-SliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-SliderHandle.BorderSizePixel = 0
-SliderHandle.Position = UDim2.new(0.5, -8, 0, -3)
-SliderHandle.Size = UDim2.new(0, 16, 0, 21)
-SliderHandle.Text = ""
-Instance.new("UICorner", SliderHandle).CornerRadius = UDim.new(0, 8)
-
--- Label ukuran
-local SizeLabel = Instance.new("TextLabel")
-SizeLabel.Parent = ResizePanel
-SizeLabel.BackgroundTransparency = 1
-SizeLabel.Position = UDim2.new(0, 130, 0, 0)
-SizeLabel.Size = UDim2.new(0, 50, 0, 35)
-SizeLabel.Font = Enum.Font.GothamBold
-SizeLabel.Text = "120"
-SizeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-SizeLabel.TextSize = 14
-
--- Tombol +/- 
-local MinusBtn = Instance.new("TextButton")
-MinusBtn.Parent = ResizePanel
-MinusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-MinusBtn.BorderSizePixel = 0
-MinusBtn.Position = UDim2.new(0, 185, 0, 5)
-MinusBtn.Size = UDim2.new(0, 25, 0, 25)
-MinusBtn.Font = Enum.Font.GothamBold
-MinusBtn.Text = "−"
-MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinusBtn.TextSize = 18
-Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 6)
-
-local PlusBtn = Instance.new("TextButton")
-PlusBtn.Parent = ResizePanel
-PlusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-PlusBtn.BorderSizePixel = 0
-PlusBtn.Position = UDim2.new(0, 215, 0, 5)
-PlusBtn.Size = UDim2.new(0, 25, 0, 25)
-PlusBtn.Font = Enum.Font.GothamBold
-PlusBtn.Text = "+"
-PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlusBtn.TextSize = 18
-Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
-
--- ==============================
--- MAIN FRAME (AWALNYA TERSEMBUNYI)
--- ==============================
+-- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 440, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -220, 0.5, -125)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 23, 42)
 MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -145, 0.5, -110)
-MainFrame.Size = UDim2.new(0, 290, 0, 220)
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = false  -- AWALNYA TERSEMBUNYI
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+MainFrame.Parent = ScreenGui
 
--- Main frame glow
-local MainGlow = Instance.new("UIStroke", MainFrame)
-MainGlow.Color = Color3.fromRGB(80, 80, 200)
-MainGlow.Thickness = 1.5
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 12)
+MainUICorner.Parent = MainFrame
 
-local BorderGlow = Instance.new("UIGradient", MainGlow)
-BorderGlow.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 80, 200)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 80, 200)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 80, 200))
-})
+-- Border Cyan
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(6, 182, 212)
+UIStroke.Thickness = 2.5
+UIStroke.Parent = MainFrame
 
--- Title
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 36)
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
-Title.BorderSizePixel = 0
+-- Title Text
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 180, 0, 25)
+Title.Position = UDim2.new(0, 15, 0, 10)
+Title.BackgroundTransparency = 1
+Title.Text = "SERVER HOP PANEL"
+Title.TextColor3 = Color3.fromRGB(6, 182, 212)
+Title.TextSize = 13
 Title.Font = Enum.Font.GothamBold
-Title.Text = "✦ iD1LHUB ServerHop ✦"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 15
-Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
 
-local TitleGradient = Instance.new("UIGradient", Title)
-TitleGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 50))
-})
-
-local CloseBtn = Instance.new("TextButton", MainFrame)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Position = UDim2.new(1, -28, 0, 6)
-CloseBtn.Size = UDim2.new(0, 22, 0, 22)
+-- Red Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -34, 0, 10)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(239, 68, 68)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 12
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 70, 70)
-CloseBtn.TextSize = 14
-CloseBtn.MouseButton1Click:Connect(function() 
-    ScreenGui:Destroy() 
+CloseBtn.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
 end)
 
--- Player count
-local NowLabel = Instance.new("TextLabel", MainFrame)
-NowLabel.Position = UDim2.new(0, 10, 0, 44)
-NowLabel.Size = UDim2.new(1, -20, 0, 22)
-NowLabel.BackgroundTransparency = 1
-NowLabel.Font = Enum.Font.GothamBold
-NowLabel.TextXAlignment = Enum.TextXAlignment.Left
-NowLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
-NowLabel.TextSize = 13
-NowLabel.Text = "👥 Player: 0"
+-- Left Side Components --
+local LeftFrame = Instance.new("Frame")
+LeftFrame.Size = UDim2.new(0, 185, 0, 180)
+LeftFrame.Position = UDim2.new(0, 15, 0, 42)
+LeftFrame.BackgroundTransparency = 1
+LeftFrame.Parent = MainFrame
 
--- Status
-local StatusLabel = Instance.new("TextLabel", MainFrame)
-StatusLabel.Position = UDim2.new(0, 10, 0, 70)
-StatusLabel.Size = UDim2.new(1, -20, 0, 30)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-StatusLabel.TextSize = 12
-StatusLabel.TextWrapped = true
-StatusLabel.Text = "⚡ Siap. Set angka lalu tekan Hop."
+-- Max Player Label
+local MaxPlayerLabel = Instance.new("TextLabel")
+MaxPlayerLabel.Size = UDim2.new(1, 0, 0, 16)
+MaxPlayerLabel.Position = UDim2.new(0, 0, 0, 0)
+MaxPlayerLabel.BackgroundTransparency = 1
+MaxPlayerLabel.Text = "Maksimal Player:"
+MaxPlayerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MaxPlayerLabel.TextSize = 11
+MaxPlayerLabel.Font = Enum.Font.GothamBold
+MaxPlayerLabel.TextXAlignment = Enum.TextXAlignment.Left
+MaxPlayerLabel.Parent = LeftFrame
 
--- Max player
-local MaxLabel = Instance.new("TextLabel", MainFrame)
-MaxLabel.Position = UDim2.new(0, 10, 0, 105)
-MaxLabel.Size = UDim2.new(1, -20, 0, 18)
-MaxLabel.BackgroundTransparency = 1
-MaxLabel.Font = Enum.Font.Gotham
-MaxLabel.TextXAlignment = Enum.TextXAlignment.Left
-MaxLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
-MaxLabel.TextSize = 11
-MaxLabel.Text = "🎯 Hop jika player LEBIH dari:"
+-- Max Player TextBox
+local MaxPlayerBox = Instance.new("TextBox")
+MaxPlayerBox.Size = UDim2.new(1, 0, 0, 26)
+MaxPlayerBox.Position = UDim2.new(0, 0, 0, 20)
+MaxPlayerBox.BackgroundColor3 = Color3.fromRGB(23, 32, 54)
+MaxPlayerBox.Text = "1"
+MaxPlayerBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+MaxPlayerBox.TextSize = 12
+MaxPlayerBox.Font = Enum.Font.GothamBold
+MaxPlayerBox.Parent = LeftFrame
 
-local MaxBox = Instance.new("TextBox", MainFrame)
-MaxBox.Position = UDim2.new(0, 10, 0, 126)
-MaxBox.Size = UDim2.new(1, -20, 0, 28)
-MaxBox.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
-MaxBox.BorderSizePixel = 0
-MaxBox.Font = Enum.Font.GothamBold
-MaxBox.Text = "1"
-MaxBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-MaxBox.TextSize = 14
-MaxBox.ClearTextOnFocus = false
-Instance.new("UICorner", MaxBox).CornerRadius = UDim.new(0, 6)
+local MaxBoxCorner = Instance.new("UICorner")
+MaxBoxCorner.CornerRadius = UDim.new(0, 6)
+MaxBoxCorner.Parent = MaxPlayerBox
 
--- Buttons
-local HopBtn = Instance.new("TextButton", MainFrame)
-HopBtn.Position = UDim2.new(0, 10, 0, 162)
-HopBtn.Size = UDim2.new(0, 125, 0, 45)
-HopBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180)
-HopBtn.BorderSizePixel = 0
-HopBtn.Font = Enum.Font.GothamBold
-HopBtn.Text = "🚀 Hop Sekali"
+-- Hop Server Button
+local HopBtn = Instance.new("TextButton")
+HopBtn.Size = UDim2.new(1, 0, 0, 28)
+HopBtn.Position = UDim2.new(0, 0, 0, 54)
+HopBtn.BackgroundColor3 = Color3.fromRGB(14, 165, 233)
+HopBtn.Text = "🚀 HOP SERVER"
 HopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-HopBtn.TextSize = 13
-Instance.new("UICorner", HopBtn).CornerRadius = UDim.new(0, 6)
+HopBtn.TextSize = 11
+HopBtn.Font = Enum.Font.GothamBold
+HopBtn.Parent = LeftFrame
 
-local AutoBtn = Instance.new("TextButton", MainFrame)
-AutoBtn.Position = UDim2.new(0, 145, 0, 162)
-AutoBtn.Size = UDim2.new(0, 135, 0, 45)
-AutoBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 70)
-AutoBtn.BorderSizePixel = 0
-AutoBtn.Font = Enum.Font.GothamBold
-AutoBtn.Text = "🔄 Auto Hop: OFF"
-AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoBtn.TextSize = 13
-Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(0, 6)
+local HopCorner = Instance.new("UICorner")
+HopCorner.CornerRadius = UDim.new(0, 6)
+HopCorner.Parent = HopBtn
 
--- ==============================
--- ANIMASI PANEL
--- ==============================
-local panelVisible = false
-local currentSize = 120
-local minSize = 60
-local maxSize = 300
-local targetWidth = 0
-local mainFrameVisible = false  -- AWALNYA TIDAK TERLIHAT
+-- Rejoin Server Button
+local RejoinBtn = Instance.new("TextButton")
+RejoinBtn.Size = UDim2.new(1, 0, 0, 28)
+RejoinBtn.Position = UDim2.new(0, 0, 0, 88)
+RejoinBtn.BackgroundColor3 = Color3.fromRGB(23, 32, 54)
+RejoinBtn.Text = "🔄 REJOIN SERVER"
+RejoinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RejoinBtn.TextSize = 11
+RejoinBtn.Font = Enum.Font.GothamBold
+RejoinBtn.Parent = LeftFrame
 
-local function updatePanelWidth(width)
-    targetWidth = width
-    ResizePanel.Size = UDim2.new(0, width, 0, 35)
-    Slider.Size = UDim2.new(0, width - 120, 0, 15)
-end
+local RejoinCorner = Instance.new("UICorner")
+RejoinCorner.CornerRadius = UDim.new(0, 6)
+RejoinCorner.Parent = RejoinBtn
 
-local function updateToggleSize(size)
-    size = math.clamp(size, minSize, maxSize)
-    currentSize = size
-    ToggleBtn.Size = UDim2.new(0, size, 0, 35)
-    SizeLabel.Text = tostring(size)
-    
-    -- Update slider fill
-    local percent = (size - minSize) / (maxSize - minSize)
-    SliderFill.Size = UDim2.new(percent, 0, 1, 0)
-    SliderHandle.Position = UDim2.new(percent, -8, 0, -3)
-end
+-- Random Server Button
+local RandomBtn = Instance.new("TextButton")
+RandomBtn.Size = UDim2.new(1, 0, 0, 28)
+RandomBtn.Position = UDim2.new(0, 0, 0, 122)
+RandomBtn.BackgroundColor3 = Color3.fromRGB(23, 32, 54)
+RandomBtn.Text = "🎲 RANDOM SERVER"
+RandomBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RandomBtn.TextSize = 11
+RandomBtn.Font = Enum.Font.GothamBold
+RandomBtn.Parent = LeftFrame
 
-local function toggleResizePanel()
-    if not mainFrameVisible then return end  -- HANYA BISA AKSES JIKA MAIN FRAME TERLIHAT
-    panelVisible = not panelVisible
-    if panelVisible then
-        ResizePanel.Visible = true
-        updatePanelWidth(250)
-    else
-        updatePanelWidth(0)
-        task.wait(0.2)
-        ResizePanel.Visible = false
-    end
-end
+local RandomCorner = Instance.new("UICorner")
+RandomCorner.CornerRadius = UDim.new(0, 6)
+RandomCorner.Parent = RandomBtn
 
--- ==============================
--- DRAG SLIDER
--- ==============================
-local dragging = false
+-- Status Label
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 0, 16)
+StatusLabel.Position = UDim2.new(0, 0, 0, 158)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Status: Siap 💡"
+StatusLabel.TextColor3 = Color3.fromRGB(74, 222, 128)
+StatusLabel.TextSize = 10
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = LeftFrame
 
-SliderHandle.MouseButton1Down:Connect(function()
-    dragging = true
-end)
+-- Right Side Components --
+local RefreshBtn = Instance.new("TextButton")
+RefreshBtn.Size = UDim2.new(0, 210, 0, 28)
+RefreshBtn.Position = UDim2.new(0, 215, 0, 42)
+RefreshBtn.BackgroundColor3 = Color3.fromRGB(6, 182, 212)
+RefreshBtn.Text = "⚡ REFRESH LIST SERVER"
+RefreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RefreshBtn.TextSize = 10
+RefreshBtn.Font = Enum.Font.GothamBold
+RefreshBtn.Parent = MainFrame
 
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
+local RefreshCorner = Instance.new("UICorner")
+RefreshCorner.CornerRadius = UDim.new(0, 6)
+RefreshCorner.Parent = RefreshBtn
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MousePosition then
-        local mousePos = input.Position.X
-        local sliderPos = Slider.AbsolutePosition.X
-        local sliderWidth = Slider.AbsoluteSize.X
-        
-        local percent = math.clamp((mousePos - sliderPos) / sliderWidth, 0, 1)
-        local newSize = math.round(minSize + (maxSize - minSize) * percent)
-        updateToggleSize(newSize)
-    end
-end)
+-- Server List ScrollingFrame
+local ServerListFrame = Instance.new("ScrollingFrame")
+ServerListFrame.Size = UDim2.new(0, 210, 0, 148)
+ServerListFrame.Position = UDim2.new(0, 215, 0, 78)
+ServerListFrame.BackgroundTransparency = 1
+ServerListFrame.BorderSizePixel = 0
+ServerListFrame.ScrollBarThickness = 3
+ServerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ServerListFrame.Parent = MainFrame
 
--- ==============================
--- BUTTON +/- 
--- ==============================
-MinusBtn.MouseButton1Click:Connect(function()
-    updateToggleSize(currentSize - 5)
-end)
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ServerListFrame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
 
-PlusBtn.MouseButton1Click:Connect(function()
-    updateToggleSize(currentSize + 5)
-end)
+-- Watermark
+local Watermark = Instance.new("TextLabel")
+Watermark.Size = UDim2.new(1, 0, 0, 12)
+Watermark.Position = UDim2.new(0, 0, 1, -15)
+Watermark.BackgroundTransparency = 1
+Watermark.Text = "tt : iD1L"
+Watermark.TextColor3 = Color3.fromRGB(148, 163, 184)
+Watermark.TextSize = 9
+Watermark.Font = Enum.Font.Gotham
+Watermark.Parent = MainFrame
 
--- ==============================
--- TOGGLE KLIK UNTUK SHOW/HIDE MAIN FRAME
--- ==============================
-ToggleBtn.MouseButton1Click:Connect(function()
-    -- Toggle main frame visibility
-    mainFrameVisible = not mainFrameVisible
-    MainFrame.Visible = mainFrameVisible
-    
-    -- Update text toggle
-    if mainFrameVisible then
-        ToggleBtn.Text = "◀ Hide Script"
-    else
-        ToggleBtn.Text = "▶ Show Script"
-        -- Sembunyikan resize panel jika main frame disembunyikan
-        if panelVisible then
-            panelVisible = false
-            updatePanelWidth(0)
-            task.wait(0.2)
-            ResizePanel.Visible = false
-        end
-    end
-end)
+---------------------------------------------------------
+-- ENGINE-LEVEL PROTECTION & STRICT LOCK
+---------------------------------------------------------
 
--- Klik kanan untuk resize panel (hanya jika main frame terlihat)
-ToggleBtn.MouseButton2Click:Connect(function()
-    if mainFrameVisible then
-        toggleResizePanel()
-    end
-end)
+local currentCursor = ""
 
--- ==============================
--- LOGIC
--- ==============================
-
-local autoEnabled = false
-local autoThread = nil
-
--- Update player count
-task.spawn(function()
-    while ScreenGui.Parent do
-        local count = #Players:GetPlayers()
-        NowLabel.Text = "👥 Player: " .. count
-        task.wait(1)
-    end
-end)
-
-local function getRandomServer()
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    local ok, raw = pcall(function() return game:HttpGet(url) end)
-    if not ok or not raw or raw == "" then return nil end
-
-    local ok2, data = pcall(HttpService.JSONDecode, HttpService, raw)
-    if not ok2 or not data or not data.data or #data.data == 0 then return nil end
-
-    local currentId = tostring(game.JobId)
-    local candidates = {}
-    for _, s in ipairs(data.data) do
-        if s.id and tostring(s.id) ~= currentId then
-            table.insert(candidates, tostring(s.id))
-        end
-    end
-
-    if #candidates == 0 then return nil end
-    return candidates[math.random(1, #candidates)]
-end
-
-local function hopOnce()
-    local threshold = math.max(1, math.floor(tonumber(MaxBox.Text) or 1))
-    local currentCount = #Players:GetPlayers()
-
-    if currentCount <= threshold then
-        StatusLabel.Text = "✅ Server ini sudah " .. currentCount .. " player. Tidak perlu hop."
-        StatusLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
-        return false
-    end
-
-    StatusLabel.Text = "⏳ Server ini " .. currentCount .. " player. Mencari server lain..."
-    StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    task.wait(0.5)
-
-    local serverId = getRandomServer()
-    if not serverId then
-        StatusLabel.Text = "❌ Gagal ambil server list. Cek HTTP Request di executor."
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-        return false
-    end
-
-    StatusLabel.Text = "🔄 Teleport ke server lain..."
-    StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
-    task.wait(0.5)
-
-    local ok, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
-    end)
-
-    if not ok then
-        StatusLabel.Text = "❌ Teleport error: " .. tostring(err):sub(1, 60)
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-        return false
-    end
-
-    return true
-end
-
-HopBtn.MouseButton1Click:Connect(function()
-    HopBtn.Active = false
-    hopOnce()
-    task.wait(2)
-    HopBtn.Active = true
-end)
-
-AutoBtn.MouseButton1Click:Connect(function()
-    autoEnabled = not autoEnabled
-
-    if autoEnabled then
-        AutoBtn.Text = "🔄 Auto Hop: ON"
-        AutoBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-
-        autoThread = task.spawn(function()
-            while autoEnabled and ScreenGui.Parent do
-                local threshold = math.max(1, math.floor(tonumber(MaxBox.Text) or 1))
-                local count = #Players:GetPlayers()
-
-                if count <= threshold then
-                    StatusLabel.Text = "✅ " .. count .. " player di sini. Menunggu..."
-                    StatusLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
-                    task.wait(3)
-                else
-                    hopOnce()
-                    task.wait(5)
-                end
+-- LAPIS 5: NUKER ITEM JIKA TERJADI KEBOCORAN LEBIH DARI 20
+ServerListFrame.ChildAdded:Connect(function(child)
+    if child:IsA("TextButton") then
+        local count = 0
+        for _, btn in ipairs(ServerListFrame:GetChildren()) do
+            if btn:IsA("TextButton") then
+                count = count + 1
             end
-        end)
-    else
-        AutoBtn.Text = "🔄 Auto Hop: OFF"
-        AutoBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 70)
-        if autoThread then
-            task.cancel(autoThread)
-            autoThread = nil
         end
-        StatusLabel.Text = "⏹ Auto Hop dihentikan."
-        StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+        if count > 20 then
+            child:Destroy() -- PEMUSNAHAN PAKSA
+        end
     end
 end)
 
--- Init
-StatusLabel.Text = "⚡ Siap. Set angka lalu tekan Hop."
-StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+local function setStatus(text, statusType)
+    StatusLabel.Text = "Status: " .. text
+    if statusType == "loading" then
+        StatusLabel.TextColor3 = Color3.fromRGB(250, 204, 21)
+    elseif statusType == "ready" then
+        StatusLabel.TextColor3 = Color3.fromRGB(74, 222, 128)
+    elseif statusType == "error" then
+        StatusLabel.TextColor3 = Color3.fromRGB(239, 68, 68)
+    end
+end
 
--- Inisialisasi ukuran toggle
-updateToggleSize(120)
+local function fetchServersApi()
+    local placeId = game.PlaceId
+    local url = 'https://games.roblox.com/v1/games/' .. placeId .. '/servers/Public?sortOrder=Asc&limit=100'
+    
+    if currentCursor ~= "" then
+        url = url .. "&cursor=" .. currentCursor
+    end
+    
+    local success, response = pcall(function()
+        return game:HttpGet(url)
+    end)
+    
+    if success then
+        local data = HttpService:JSONDecode(response)
+        if data then
+            currentCursor = data.nextPageCursor or ""
+            return data.data or {}
+        end
+    end
+    return {}
+end
+
+local function populateServerList()
+    -- BERSIHKAN SEMUA UI LAMA
+    for _, child in pairs(ServerListFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    setStatus("Memuat list...", "loading")
+
+    local maxPlayersFilter = tonumber(MaxPlayerBox.Text) or 100
+    local rawServers = fetchServersApi()
+    local filteredServers = {}
+
+    for _, s in ipairs(rawServers) do
+        if s.playing ~= nil and s.playing <= maxPlayersFilter and s.id ~= game.JobId then
+            table.insert(filteredServers, s)
+        end
+    end
+
+    -- LAPIS 3: ARRAY TRUNCATION (POTONG MEMORI SISA MAX 20)
+    local maxLimit = math.min(#filteredServers, 20)
+    local lockedServers = {}
+    table.move(filteredServers, 1, maxLimit, 1, lockedServers)
+
+    -- LAPIS 4: ITERATIVE BREAK PROTECTION
+    local createdCount = 0
+    for i, s in ipairs(lockedServers) do
+        if createdCount >= 20 then break end
+        createdCount = createdCount + 1
+
+        local ItemBtn = Instance.new("TextButton")
+        ItemBtn.Name = "ServerBox_" .. tostring(createdCount)
+        ItemBtn.Size = UDim2.new(1, -5, 0, 26)
+        ItemBtn.BackgroundColor3 = Color3.fromRGB(23, 32, 54)
+        ItemBtn.Text = "   👥 " .. tostring(s.playing) .. "/" .. tostring(s.maxPlayers) .. " player"
+        ItemBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ItemBtn.TextSize = 10
+        ItemBtn.Font = Enum.Font.GothamBold
+        ItemBtn.TextXAlignment = Enum.TextXAlignment.Left
+        ItemBtn.Parent = ServerListFrame
+
+        local ItemCorner = Instance.new("UICorner")
+        ItemCorner.CornerRadius = UDim.new(0, 5)
+        ItemCorner.Parent = ItemBtn
+
+        ItemBtn.MouseButton1Click:Connect(function()
+            setStatus("Teleportasi...", "loading")
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+        end)
+    end
+
+    if createdCount == 0 then
+        setStatus("Server tidak ditemukan!", "error")
+    else
+        setStatus("Siap 💡", "ready")
+    end
+
+    ServerListFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+end
+
+-- MANAJEMEN COOLDOWN GLOBAL REAL-TIME
+local function updateCooldownUI()
+    RefreshBtn.BackgroundColor3 = Color3.fromRGB(71, 85, 105)
+    
+    task.spawn(function()
+        while true do
+            local remaining = math.ceil(globalEnv.ServerHop_CooldownEnd - os.time())
+            
+            if remaining <= 0 then
+                break
+            end
+            
+            RefreshBtn.Text = "⏳ COOLDOWN (" .. tostring(remaining) .. "s)"
+            task.wait(0.2)
+        end
+        
+        RefreshBtn.Text = "⚡ REFRESH LIST SERVER"
+        RefreshBtn.BackgroundColor3 = Color3.fromRGB(6, 182, 212)
+    end)
+end
+
+RefreshBtn.MouseButton1Click:Connect(function()
+    local currentTime = os.time()
+    
+    -- JIKA MASIH DALAM MASA COOLDOWN: METODE DITOLAK TOTAL
+    if currentTime < globalEnv.ServerHop_CooldownEnd then
+        return
+    end
+
+    -- SET COOLDOWN BARU 10 DETIK
+    globalEnv.ServerHop_CooldownEnd = currentTime + 10
+    populateServerList()
+    updateCooldownUI()
+end)
+
+local function hopServer()
+    setStatus("Mencari Server...", "loading")
+    local maxPlayersFilter = tonumber(MaxPlayerBox.Text) or 1
+    local servers = fetchServersApi()
+
+    for _, s in ipairs(servers) do
+        if s.playing ~= nil and s.playing <= maxPlayersFilter and s.id ~= game.JobId then
+            setStatus("Pindah Server...", "loading")
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+            return
+        end
+    end
+    setStatus("Gagal Ditemukan!", "error")
+end
+
+local function randomServer()
+    setStatus("Mencari Server...", "loading")
+    local servers = fetchServersApi()
+    local validServers = {}
+
+    for _, s in ipairs(servers) do
+        if s.id ~= game.JobId and s.playing < s.maxPlayers then
+            table.insert(validServers, s.id)
+        end
+    end
+
+    if #validServers > 0 then
+        local randomId = validServers[math.random(1, #validServers)]
+        setStatus("Pindah Random...", "loading")
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, randomId, LocalPlayer)
+    else
+        setStatus("Gagal Ditemukan!", "error")
+    end
+end
+
+local function rejoinServer()
+    setStatus("Rejoin...", "loading")
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+end
+
+HopBtn.MouseButton1Click:Connect(hopServer)
+RejoinBtn.MouseButton1Click:Connect(rejoinServer)
+RandomBtn.MouseButton1Click:Connect(randomServer)
+
+-- LAPIS 2: EXECUTION GATE BLOCK SAAT EXECUTE ULANG
+task.spawn(function()
+    local currentTime = os.time()
+    
+    if currentTime < globalEnv.ServerHop_CooldownEnd then
+        -- RE-EXECUTE SAAT COOLDOWN: DILARANG MEMUAT SERVER BARU!
+        updateCooldownUI()
+        setStatus("Cooldown", "error")
+    else
+        -- EXECUTE NORMAL SAAT WAKTU COOLDOWN HABIS
+        globalEnv.ServerHop_CooldownEnd = currentTime + 10
+        populateServerList()
+        updateCooldownUI()
+    end
+end)
