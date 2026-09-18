@@ -403,7 +403,7 @@ task.spawn(function()
     if currentTime < globalEnv.ServerHop_CooldownEnd then
         -- RE-EXECUTE SAAT COOLDOWN: DILARANG MEMUAT SERVER BARU!
         updateCooldownUI()
-        setStatus("Cooldown", "error")
+        setStatus("Cooldown!", "error")
     else
         -- EXECUTE NORMAL SAAT WAKTU COOLDOWN HABIS
         globalEnv.ServerHop_CooldownEnd = currentTime + 10
