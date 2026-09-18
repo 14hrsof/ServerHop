@@ -3,9 +3,10 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- LAPIS 1: COOLDOWN PERSISTEN DI ENVIRONMENT EXECUTOR TERATAS
+-- MEMORI GLOBAL EXECUTOR (COOLDOWN + CACHE LIST SERVER)
 local globalEnv = (getgenv and getgenv()) or shared or _G
 globalEnv.ServerHop_CooldownEnd = globalEnv.ServerHop_CooldownEnd or 0
+globalEnv.ServerHop_Cache = globalEnv.ServerHop_Cache or {}
 
 -- Hapus GUI lama jika ada
 if game.CoreGui:FindFirstChild("ServerHopPanelGUI") then
@@ -203,12 +204,12 @@ Watermark.Font = Enum.Font.Gotham
 Watermark.Parent = MainFrame
 
 ---------------------------------------------------------
--- ENGINE-LEVEL PROTECTION & STRICT LOCK
+-- ENGINE & RENDER LOCK (STRICT 20 SERVERS)
 ---------------------------------------------------------
 
 local currentCursor = ""
 
--- LAPIS 5: NUKER ITEM JIKA TERJADI KEBOCORAN LEBIH DARI 20
+-- HARD ENGINE NUKER: HAPUS PAKSA JIKA ADA ITEM > 20
 ServerListFrame.ChildAdded:Connect(function(child)
     if child:IsA("TextButton") then
         local count = 0
@@ -218,7 +219,7 @@ ServerListFrame.ChildAdded:Connect(function(child)
             end
         end
         if count > 20 then
-            child:Destroy() -- PEMUSNAHAN PAKSA
+            child:Destroy()
         end
     end
 end)
@@ -256,34 +257,16 @@ local function fetchServersApi()
     return {}
 end
 
-local function populateServerList()
-    -- BERSIHKAN SEMUA UI LAMA
+-- RENDER LIST DARI DATA TABEL MEMORI (MAX 20 LIST)
+local function renderServerButtons(serverTable)
     for _, child in pairs(ServerListFrame:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
         end
     end
 
-    setStatus("Memuat list...", "loading")
-
-    local maxPlayersFilter = tonumber(MaxPlayerBox.Text) or 100
-    local rawServers = fetchServersApi()
-    local filteredServers = {}
-
-    for _, s in ipairs(rawServers) do
-        if s.playing ~= nil and s.playing <= maxPlayersFilter and s.id ~= game.JobId then
-            table.insert(filteredServers, s)
-        end
-    end
-
-    -- LAPIS 3: ARRAY TRUNCATION (POTONG MEMORI SISA MAX 20)
-    local maxLimit = math.min(#filteredServers, 20)
-    local lockedServers = {}
-    table.move(filteredServers, 1, maxLimit, 1, lockedServers)
-
-    -- LAPIS 4: ITERATIVE BREAK PROTECTION
     local createdCount = 0
-    for i, s in ipairs(lockedServers) do
+    for i, s in ipairs(serverTable) do
         if createdCount >= 20 then break end
         createdCount = createdCount + 1
 
@@ -308,16 +291,42 @@ local function populateServerList()
         end)
     end
 
-    if createdCount == 0 then
+    ServerListFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+end
+
+-- MENGAMBIL DATA BARU & MENGISI CACHE GLOBAL
+local function populateServerList()
+    setStatus("Memuat list...", "loading")
+
+    local maxPlayersFilter = tonumber(MaxPlayerBox.Text) or 100
+    local rawServers = fetchServersApi()
+    local filteredServers = {}
+
+    for _, s in ipairs(rawServers) do
+        if s.playing ~= nil and s.playing <= maxPlayersFilter and s.id ~= game.JobId then
+            table.insert(filteredServers, s)
+        end
+    end
+
+    -- POTONG PAKSA HANYA 20 SERVER TERATAS
+    local maxLimit = math.min(#filteredServers, 20)
+    local lockedServers = {}
+    table.move(filteredServers, 1, maxLimit, 1, lockedServers)
+
+    -- SIMPAN KE MEMORI CACHE EXECUTOR
+    globalEnv.ServerHop_Cache = lockedServers
+
+    -- RENDER BENTUK TOMBOL PADA UI
+    renderServerButtons(globalEnv.ServerHop_Cache)
+
+    if #lockedServers == 0 then
         setStatus("Server tidak ditemukan!", "error")
     else
         setStatus("Siap 💡", "ready")
     end
-
-    ServerListFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
 end
 
--- MANAJEMEN COOLDOWN GLOBAL REAL-TIME
+-- LOGIKA COOLDOWN LOOP
 local function updateCooldownUI()
     RefreshBtn.BackgroundColor3 = Color3.fromRGB(71, 85, 105)
     
@@ -340,13 +349,10 @@ end
 
 RefreshBtn.MouseButton1Click:Connect(function()
     local currentTime = os.time()
-    
-    -- JIKA MASIH DALAM MASA COOLDOWN: METODE DITOLAK TOTAL
     if currentTime < globalEnv.ServerHop_CooldownEnd then
         return
     end
 
-    -- SET COOLDOWN BARU 10 DETIK
     globalEnv.ServerHop_CooldownEnd = currentTime + 10
     populateServerList()
     updateCooldownUI()
@@ -396,16 +402,18 @@ HopBtn.MouseButton1Click:Connect(hopServer)
 RejoinBtn.MouseButton1Click:Connect(rejoinServer)
 RandomBtn.MouseButton1Click:Connect(randomServer)
 
--- LAPIS 2: EXECUTION GATE BLOCK SAAT EXECUTE ULANG
+-- PENGECEKAN INTI SAAT EXECUTE / RE-EXECUTE
 task.spawn(function()
     local currentTime = os.time()
     
     if currentTime < globalEnv.ServerHop_CooldownEnd then
-        -- RE-EXECUTE SAAT COOLDOWN: DILARANG MEMUAT SERVER BARU!
+        -- KETIKA RE-EXECUTE SAAT COOLDOWN:
+        -- RENDER SERVER DARI CACHE TANPA REQUEST REFRESH BARU
+        renderServerButtons(globalEnv.ServerHop_Cache)
         updateCooldownUI()
-        setStatus("Cooldown!", "error")
+        setStatus("Cooldown...", "error")
     else
-        -- EXECUTE NORMAL SAAT WAKTU COOLDOWN HABIS
+        -- EXECUTE NORMAL SAAT BEBAS COOLDOWN
         globalEnv.ServerHop_CooldownEnd = currentTime + 10
         populateServerList()
         updateCooldownUI()
